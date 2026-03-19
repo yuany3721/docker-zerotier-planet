@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  zerotier-planet:
+    # 使用本地构建的镜像
+    image: ${DOCKER_IMAGE:-zerotier-planet:local}
+    
+    # 如果使用本地 Dockerfile 构建，取消下面几行的注释
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   args:
+    #     - TAG=${ZEROTIER_TAG:-actions}
+    
+    container_name: myztplanet
+    restart: unless-stopped
+    
+    networks:
+      - zerotier-network
+    
+    ports:
+      - "${ZT_PORT}:${ZT_PORT}"
+      - "${ZT_PORT}:${ZT_PORT}/udp"
+      - "${API_PORT}:${API_PORT}"
+      - "${FILE_PORT}:${FILE_PORT}"
+    
+    environment:
+      - IP_ADDR4=${IP_ADDR4}
+      - IP_ADDR6=${IP_ADDR6}
+      - ZT_PORT=${ZT_PORT}
+      - API_PORT=${API_PORT}
+      - FILE_SERVER_PORT=${FILE_PORT}
+      - FILE_KEY=${FILE_KEY:-}
+      - TZ=${TZ:-Asia/Shanghai}
+      - GH_MIRROR=${GH_MIRROR:-https://mirror.ghproxy.com/}
+    
+    volumes:
+      - ./data/zerotier/dist:/app/dist
+      - ./data/zerotier/ztncui:/app/ztncui
+      - ./data/zerotier/one:/var/lib/zerotier-one
+      - ./data/zerotier/config:/app/config
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "zerotier-one", "-h"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  zerotier-network:
+    driver: bridge
